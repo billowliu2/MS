@@ -1,0 +1,19 @@
+﻿<Project>
+	<PropertyGroup>
+		<Authors>Bill</Authors>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+		<LangVersion>Latest</LangVersion>
+		<RootNamespacePrefix>MS.Lib</RootNamespacePrefix>
+		<AssemblyName>$(RootNamespacePrefix).$(MSBuildProjectName)</AssemblyName>
+		<RootNamespace>$(AssemblyName)</RootNamespace>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+		<!--设置打包路径-->
+		<PackageOutputPath>$(SolutionDir)\_packages</PackageOutputPath>
+		<Company>Bill</Company>
+		<Copyright>billowliu.com @2020</Copyright>
+		<PackageProjectUrl>https://docs.17mkh.com/</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/iamoldli/MS</RepositoryUrl>
+	</PropertyGroup>
+</Project>

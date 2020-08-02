@@ -1,0 +1,70 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using MS.Lib.Data.Abstractions;
+using MS.Lib.Data.Abstractions.Entities;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace MS.Lib.Data.Core
+{
+    public class EntityObserverHandler : IEntityObserverHandler
+    {
+        private readonly IServiceProvider _sp;
+
+        public EntityObserverHandler(IServiceProvider sp)
+        {
+            _sp = sp;
+        }
+
+        public Task Add<T>(dynamic id, IUnitOfWork uow = null) where T : IEntity
+        {
+            var observers = _sp.GetServices<IEntityObserver<T>>().ToList();
+            if (observers.Any())
+            {
+                var tasks = new Task[observers.Count];
+                for (int i = 0; i < observers.Count; i++)
+                {
+                    tasks[i] = observers[i].Add(id, uow);
+                }
+
+                return Task.WhenAll(tasks);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task Update<T>(dynamic id, IUnitOfWork uow = null) where T : IEntity
+        {
+            var observers = _sp.GetServices<IEntityObserver<T>>().ToList();
+            if (observers.Any())
+            {
+                var tasks = new Task[observers.Count];
+                for (int i = 0; i < observers.Count; i++)
+                {
+                    tasks[i] = observers[i].Update(id, uow);
+                }
+
+                return Task.WhenAll(tasks);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task Delete<T>(dynamic id, IUnitOfWork uow = null) where T : IEntity
+        {
+            var observers = _sp.GetServices<IEntityObserver<T>>().ToList();
+            if (observers.Any())
+            {
+                var tasks = new Task[observers.Count];
+                for (int i = 0; i < observers.Count; i++)
+                {
+                    tasks[i] = observers[i].Delete(id, uow);
+                }
+
+                return Task.WhenAll(tasks);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+}

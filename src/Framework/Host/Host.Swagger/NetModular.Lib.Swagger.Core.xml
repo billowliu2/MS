@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MS.Lib.Host.Swagger</name>
+    </assembly>
+    <members>
+        <member name="M:MS.Lib.Host.Swagger.ApplicationBuilderExtensions.UseCustomSwagger(Microsoft.AspNetCore.Builder.IApplicationBuilder)">
+            <summary>
+            自定义Swagger
+            </summary>
+            <param name="app"></param>
+            <returns></returns>
+        </member>
+        <member name="T:MS.Lib.Host.Swagger.Conventions.ApiExplorerGroupConvention">
+            <summary>
+            API分组约定
+            </summary>
+        </member>
+        <member name="T:MS.Lib.Host.Swagger.Filters.DescriptionDocumentFilter">
+            <summary>
+            控制器和方法的描述信息处理
+            </summary>
+        </member>
+        <member name="M:MS.Lib.Host.Swagger.Filters.DescriptionDocumentFilter.SetControllerDescription(Microsoft.OpenApi.Models.OpenApiDocument,Swashbuckle.AspNetCore.SwaggerGen.DocumentFilterContext)">
+            <summary>
+            设置控制器的描述信息
+            </summary>
+            <param name="swaggerDoc"></param>
+            <param name="context"></param>
+        </member>
+        <member name="M:MS.Lib.Host.Swagger.Filters.DescriptionDocumentFilter.SetActionDescription(Microsoft.OpenApi.Models.OpenApiDocument,Swashbuckle.AspNetCore.SwaggerGen.DocumentFilterContext)">
+            <summary>
+            设置方法的说明
+            </summary>
+            <param name="swaggerDoc"></param>
+            <param name="context"></param>
+        </member>
+        <member name="M:MS.Lib.Host.Swagger.Filters.DescriptionDocumentFilter.SetModelDescription(Microsoft.OpenApi.Models.OpenApiDocument,Swashbuckle.AspNetCore.SwaggerGen.DocumentFilterContext)">
+            <summary>
+            设置模型属性描述信息
+            </summary>
+            <param name="swaggerDoc"></param>
+            <param name="context"></param>
+        </member>
+        <member name="M:MS.Lib.Host.Swagger.Filters.DescriptionDocumentFilter.TryGetActionDescription(System.String,Swashbuckle.AspNetCore.SwaggerGen.DocumentFilterContext,System.String@)">
+            <summary>
+            获取说明
+            </summary>
+        </member>
+        <member name="T:MS.Lib.Host.Swagger.Filters.LowercaseDocumentFilter">
+            <summary>
+            把接口地址转换为小写
+            </summary>
+        </member>
+        <member name="M:MS.Lib.Host.Swagger.ServiceCollectionExtensions.AddSwagger(Microsoft.Extensions.DependencyInjection.IServiceCollection,MS.Lib.Module.Abstractions.IModuleCollection)">
+            <summary>
+            添加Swagger
+            </summary>
+            <param name="services"></param>
+            <param name="modules">模块集合</param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

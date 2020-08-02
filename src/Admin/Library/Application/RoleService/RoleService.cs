@@ -1,0 +1,343 @@
+﻿using AutoMapper;
+using MS.Lib.Auth.Abstractions;
+using MS.Lib.Cache.Abstractions;
+using MS.Module.Admin.Application.AccountService;
+using MS.Module.Admin.Application.RoleService.ViewModels;
+using MS.Module.Admin.Domain.AccountRole;
+using MS.Module.Admin.Domain.Menu;
+using MS.Module.Admin.Domain.Role;
+using MS.Module.Admin.Domain.Role.Models;
+using MS.Module.Admin.Domain.RoleButton;
+using MS.Module.Admin.Domain.RoleMenu;
+using MS.Module.Admin.Domain.RolePage;
+using MS.Module.Admin.Domain.RolePermission;
+using MS.Module.Admin.Infrastructure.Repositories;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace MS.Module.Admin.Application.RoleService
+{
+    public class RoleService : IRoleService
+    {
+        private readonly IMapper _mapper;
+        private readonly IRoleRepository _repository;
+        private readonly IRoleMenuRepository _roleMenuRepository;
+        private readonly IAccountRoleRepository _accountRoleRepository;
+        private readonly IMenuRepository _menuRepository;
+        private readonly IRolePageRepository _pageRepository;
+        private readonly IRoleButtonRepository _buttonRepository;
+        private readonly IRolePermissionRepository _permissionRepository;
+        private readonly IAccountService _accountService;
+        private readonly ICacheHandler _cacheHandler;
+
+        private readonly AdminDbContext _dbContext;
+
+        public RoleService(IMapper mapper, IRoleRepository repository, IRoleMenuRepository roleMenuRepository, IAccountRoleRepository accountRoleRepository, IAccountService accountService, IMenuRepository menuRepository, AdminDbContext dbContext, ICacheHandler cacheHandler, IRolePageRepository pageRepository, IRoleButtonRepository buttonRepository1, IRolePermissionRepository permissionRepository)
+        {
+            _mapper = mapper;
+            _repository = repository;
+            _roleMenuRepository = roleMenuRepository;
+            _accountRoleRepository = accountRoleRepository;
+            _accountService = accountService;
+            _menuRepository = menuRepository;
+            _dbContext = dbContext;
+            _cacheHandler = cacheHandler;
+            _pageRepository = pageRepository;
+            _buttonRepository = buttonRepository1;
+            _permissionRepository = permissionRepository;
+        }
+
+        public async Task<IResultModel> Query(RoleQueryModel model)
+        {
+            var result = new QueryResultModel<RoleEntity>
+            {
+                Rows = await _repository.Query(model),
+                Total = model.TotalCount
+            };
+            return ResultModel.Success(result);
+        }
+
+        public async Task<IResultModel> Add(RoleAddModel model)
+        {
+            if (await _repository.Exists(model.Name))
+                return ResultModel.HasExists;
+
+            var entity = _mapper.Map<RoleEntity>(model);
+
+            var result = await _repository.AddAsync(entity);
+
+            return ResultModel.Result(result);
+        }
+
+        public async Task<IResultModel> Delete(Guid id)
+        {
+            var role = await _repository.GetAsync(id);
+            if (role == null)
+                return ResultModel.Failed("角色不存在");
+            if (role.IsSpecified)
+                return ResultModel.Failed("指定角色不允许删除");
+
+            var exist = await _accountRoleRepository.ExistsByRole(id);
+            if (exist)
+                return ResultModel.Failed("有账户绑定了该角色，请先删除对应绑定关系");
+
+            using (var uow = _dbContext.NewUnitOfWork())
+            {
+                var result = await _repository.SoftDeleteAsync(id, uow);
+                if (result)
+                {
+                    result = await _roleMenuRepository.DeleteByRoleId(id, uow);
+                    if (result)
+                    {
+                        uow.Commit();
+                    }
+                }
+                return ResultModel.Result(result);
+            }
+        }
+
+        public async Task<IResultModel> Edit(Guid id)
+        {
+            var entity = await _repository.GetAsync(id);
+            if (entity == null)
+                return ResultModel.NotExists;
+
+            if (entity.IsSpecified)
+                return ResultModel.Failed("指定角色不允许编辑");
+
+            var model = _mapper.Map<RoleUpdateModel>(entity);
+            return ResultModel.Success(model);
+        }
+
+        public async Task<IResultModel> Update(RoleUpdateModel model)
+        {
+            if (await _repository.Exists(model.Name, model.Id))
+                return ResultModel.HasExists;
+
+            var role = await _repository.GetAsync(model.Id);
+            if (role.IsSpecified)
+                return ResultModel.Failed("指定角色不允许编辑");
+
+            _mapper.Map(model, role);
+
+            var result = await _repository.UpdateAsync(role);
+
+            return ResultModel.Result(result);
+        }
+
+        public async Task<IResultModel> QueryBindPages(Guid roleId)
+        {
+            if (!await _repository.ExistsAsync(roleId))
+                return ResultModel.NotExists;
+
+            var model = new RolePageBindModel
+            {
+                RoleId = roleId
+            };
+
+            var pageCodesTask = _pageRepository.QueryPageCodesByRole(roleId);
+            var buttonsTask = _buttonRepository.QueryButtonCodes(roleId);
+
+            var pageCodes = await pageCodesTask;
+            var buttons = await buttonsTask;
+
+            if (pageCodes.Any())
+            {
+                foreach (var pageCode in pageCodes)
+                {
+                    var page = new PageBindModel
+                    {
+                        Code = pageCode,
+                        Buttons = buttons.Where(m => m.PageCode == pageCode).Select(m => m.ButtonCode).ToList()
+                    };
+
+                    model.Pages.Add(page);
+                }
+            }
+
+            return ResultModel.Success(model);
+        }
+
+        public async Task<IResultModel> BindPages(RolePageBindModel model)
+        {
+            if (!await _repository.ExistsAsync(model.RoleId))
+                return ResultModel.NotExists;
+
+            using var uow = _dbContext.NewUnitOfWork();
+            var deletePagesTask = _pageRepository.DeleteByRole(model.RoleId, uow);
+            var deleteButtonsTask = _buttonRepository.DeleteByRole(model.RoleId, uow);
+            var deletePermissionsTask = _permissionRepository.DeleteByRole(model.RoleId, Platform.Web, uow);
+
+            if (await deletePagesTask && await deleteButtonsTask && await deletePermissionsTask)
+            {
+                if (model.Pages != null && model.Pages.Any())
+                {
+                    foreach (var page in model.Pages)
+                    {
+                        //插入绑定页面
+                        await _pageRepository.AddAsync(new RolePageEntity
+                        {
+                            PageCode = page.Code,
+                            RoleId = model.RoleId
+                        }, uow);
+
+                        //插入绑定按钮
+                        if (page.Buttons != null && page.Buttons.Any())
+                        {
+                            foreach (var button in page.Buttons)
+                            {
+                                await _buttonRepository.AddAsync(new RoleButtonEntity
+                                {
+                                    RoleId = model.RoleId,
+                                    ButtonCode = button,
+                                    PageCode = page.Code
+                                }, uow);
+                            }
+                        }
+
+                        //插入绑定权限
+                        if (page.Permissions != null && page.Permissions.Any())
+                        {
+                            foreach (var permission in page.Permissions)
+                            {
+                                await _permissionRepository.AddAsync(new RolePermissionEntity
+                                {
+                                    RoleId = model.RoleId,
+                                    Platform = Platform.Web,
+                                    PermissionCode = permission
+                                }, uow);
+                            }
+                        }
+                    }
+                }
+
+                uow.Commit();
+
+                //清楚缓存
+                await ClearAccountPermissionCache(model.RoleId);
+                return ResultModel.Success();
+            }
+
+            return ResultModel.Failed();
+        }
+
+        public async Task<IResultModel> QueryBindMenus(Guid id)
+        {
+            if (!await _repository.ExistsAsync(id))
+                return ResultModel.NotExists;
+
+            var menus = await _menuRepository.QueryByRole(id);
+            var list = menus.Where(m => m.Type != MenuType.Node).Select(m => m.Id).ToList();
+
+            return ResultModel.Success(list);
+        }
+
+        public async Task<IResultModel> BindMenus(RoleMenuBindModel model)
+        {
+            if (!await _repository.ExistsAsync(model.RoleId))
+                return ResultModel.NotExists;
+
+            using var uow = _dbContext.NewUnitOfWork();
+
+            if (await _roleMenuRepository.DeleteByRoleId(model.RoleId, uow))
+            {
+                if (model.Menus != null && model.Menus.Any())
+                {
+                    foreach (var menuId in model.Menus)
+                    {
+                        if (menuId.IsEmpty())
+                            continue;
+
+                        await _roleMenuRepository.AddAsync(new RoleMenuEntity
+                        {
+                            RoleId = model.RoleId,
+                            MenuId = menuId
+                        }, uow);
+                    }
+                }
+
+                uow.Commit();
+
+                //清楚缓存
+                await ClearAccountPermissionCache(model.RoleId);
+
+                return ResultModel.Success();
+            }
+
+            return ResultModel.Failed();
+        }
+
+        public async Task<IResultModel> Select()
+        {
+            var all = await _repository.GetAllAsync();
+            var list = all.Select(m => new OptionResultModel
+            {
+                Label = m.Name,
+                Value = m.Id
+            }).ToList();
+
+            return ResultModel.Success(list);
+        }
+
+        public Task<bool> AddSpecified(RoleAddModel model)
+        {
+            return Task.FromResult(true);
+        }
+
+        public async Task<IResultModel> QueryPlatformPermissions(Guid roleId, Platform platform)
+        {
+            if (platform == Platform.Web)
+                return ResultModel.Failed("WEB平台请使用页面授权");
+
+            var list = await _permissionRepository.QueryByRole(roleId, platform);
+            return ResultModel.Success(list);
+        }
+
+        public async Task<IResultModel> BindPlatformPermissions(RolePermissionBindModel model)
+        {
+            if (model.Platform == Platform.Web)
+                return ResultModel.Failed("WEB平台请使用页面授权");
+
+            using var uow = _dbContext.NewUnitOfWork();
+            var result = await _permissionRepository.DeleteByRole(model.RoleId, model.Platform, uow);
+            if (result)
+            {
+                if (model.Permissions != null && model.Permissions.Any())
+                {
+                    var list = model.Permissions.Select(m => new RolePermissionEntity
+                    {
+                        RoleId = model.RoleId,
+                        Platform = model.Platform,
+                        PermissionCode = m
+                    }).ToList();
+
+                    await _permissionRepository.AddAsync(list, uow);
+                }
+
+                uow.Commit();
+                await ClearAccountPermissionCache(model.RoleId);
+                return ResultModel.Success();
+            }
+
+            return ResultModel.Failed();
+        }
+
+        /// <summary>
+        /// 清除角色关联账户的权限缓存
+        /// </summary>
+        /// <param name="roleId"></param>
+        /// <returns></returns>
+        private async Task ClearAccountPermissionCache(Guid roleId)
+        {
+            var relationList = await _accountRoleRepository.QueryByRole(roleId);
+            if (relationList.Any())
+            {
+                foreach (var relation in relationList)
+                {
+                    await _accountService.ClearPermissionListCache(relation.AccountId);
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MS.Lib.Host.Web</name>
+    </assembly>
+    <members>
+        <member name="M:MS.Lib.Host.Web.ApplicationBuilderExtensions.UseWebHost(Microsoft.AspNetCore.Builder.IApplicationBuilder,MS.Lib.Host.Web.Options.HostOptions,Microsoft.Extensions.Hosting.IHostEnvironment)">
+            <summary>
+            启用WebHost
+            </summary>
+            <param name="app"></param>
+            <param name="hostOptions"></param>
+            <param name="env"></param>
+            <returns></returns>
+        </member>
+        <member name="M:MS.Lib.Host.Web.ApplicationBuilderExtensions.UseDefaultPage(Microsoft.AspNetCore.Builder.IApplicationBuilder)">
+            <summary>
+            启用默认页
+            </summary>
+            <param name="app"></param>
+            <returns></returns>
+        </member>
+        <member name="M:MS.Lib.Host.Web.ApplicationBuilderExtensions.UseDocs(Microsoft.AspNetCore.Builder.IApplicationBuilder)">
+            <summary>
+            启动文档页
+            </summary>
+            <param name="app"></param>
+            <returns></returns>
+        </member>
+        <member name="M:MS.Lib.Host.Web.ApplicationBuilderExtensions.UseShutdownHandler(Microsoft.AspNetCore.Builder.IApplicationBuilder)">
+            <summary>
+            启用应用停止处理
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:MS.Lib.Host.Web.HostBuilder">
+            <summary>
+            WebHost构造器
+            </summary>
+        </member>
+        <member name="M:MS.Lib.Host.Web.HostBuilder.Run``1(System.String[])">
+            <summary>
+            启动
+            </summary>
+            <typeparam name="TStartup"></typeparam>
+            <param name="args">启动参数</param>
+        </member>
+        <member name="M:MS.Lib.Host.Web.HostBuilder.CreateBuilder``1(System.String[])">
+            <summary>
+            创建主机生成器
+            </summary>
+            <typeparam name="TStartup"></typeparam>
+            <param name="args"></param>
+            <returns></returns>
+        </member>
+        <member name="T:MS.Lib.Host.Web.Options.HostOptions">
+            <summary>
+            主机配置项
+            </summary>
+        </member>
+        <member name="P:MS.Lib.Host.Web.Options.HostOptions.Urls">
+            <summary>
+            绑定的地址(默认：http://*:5000)
+            </summary>
+        </member>
+        <member name="P:MS.Lib.Host.Web.Options.HostOptions.Swagger">
+            <summary>
+            开启Swagger
+            </summary>
+        </member>
+        <member name="P:MS.Lib.Host.Web.Options.HostOptions.Proxy">
+            <summary>
+            启用代理
+            </summary>
+        </member>
+        <member name="P:MS.Lib.Host.Web.Options.HostOptions.PreflightMaxAge">
+            <summary>
+            指定跨域访问时预检请求的有效期，单位秒，默认30分钟
+            </summary>
+        </member>
+        <member name="M:MS.Lib.Host.Web.ServiceCollectionExtensions.AddWebHost(Microsoft.Extensions.DependencyInjection.IServiceCollection,MS.Lib.Host.Web.Options.HostOptions,Microsoft.Extensions.Hosting.IHostEnvironment,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            添加WebHost
+            </summary>
+            <param name="services"></param>
+            <param name="hostOptions"></param>
+            <param name="env">环境</param>
+            <param name="cfg"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

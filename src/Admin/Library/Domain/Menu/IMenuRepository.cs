@@ -1,0 +1,54 @@
+﻿using MS.Lib.Data.Abstractions;
+using MS.Module.Admin.Domain.Menu.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace MS.Module.Admin.Domain.Menu
+{
+    /// <summary>
+    /// 菜单仓储
+    /// </summary>
+    public interface IMenuRepository : IRepository<MenuEntity>
+    {
+        /// <summary>
+        /// 查询菜单列表
+        /// </summary>
+        /// <returns></returns>
+        Task<IList<MenuEntity>> Query(MenuQueryModel model);
+
+        /// <summary>
+        /// 查询指定菜单的子菜单
+        /// </summary>
+        /// <returns></returns>
+        Task<IList<MenuEntity>> QueryChildren(Guid parentId);
+
+        /// <summary>
+        /// 判断该节点是否存在子节点
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        Task<bool> ExistsChild(Guid id);
+
+        /// <summary>
+        /// 查询单个菜单信息
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        Task<MenuEntity> GetAsync(Guid id);
+
+        /// <summary>
+        /// 获取指定账户的菜单列表
+        /// </summary>
+        /// <param name="accountId"></param>
+        /// <returns></returns>
+        Task<IList<MenuEntity>> QueryByAccount(Guid accountId);
+
+        /// <summary>
+        /// 获取指定角色的菜单列表
+        /// </summary>
+        /// <param name="roleId"></param>
+        /// <returns></returns>
+        Task<IList<MenuEntity>> QueryByRole(Guid roleId);
+    }
+}

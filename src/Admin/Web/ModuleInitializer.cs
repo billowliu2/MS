@@ -1,0 +1,55 @@
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using MS.Lib.Config.Abstractions;
+using MS.Lib.Config.Abstractions.Impl;
+using MS.Lib.Module.Abstractions;
+using MS.Lib.Module.AspNetCore;
+using MS.Module.Admin.Application.ModuleService;
+using System.IO;
+
+namespace MS.Module.Admin.Web
+{
+    public class ModuleInitializer : IModuleInitializer
+    {
+        public void ConfigureServices(IServiceCollection services, IModuleCollection modules, IHostEnvironment env, IConfiguration cfg)
+        {
+        }
+
+        public void Configure(IApplicationBuilder app, IHostEnvironment env)
+        {
+            UseUploadFile(app);
+
+            //同步模块信息
+            app.ApplicationServices.GetService<IModuleService>().Sync();
+        }
+
+        public void ConfigureMvc(MvcOptions mvcOptions)
+        {
+        }
+
+        /// <summary>
+        /// 启用上传文件访问权限
+        /// </summary>
+        /// <param name="app"></param>
+        private void UseUploadFile(IApplicationBuilder app)
+        {
+            var configProvider = app.ApplicationServices.GetService<IConfigProvider>();
+            var config = configProvider.Get<PathConfig>();
+            var logoPath = Path.Combine(config.UploadPath, "Admin/OSS/Open");
+            if (!Directory.Exists(logoPath))
+            {
+                Directory.CreateDirectory(logoPath);
+            }
+
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(logoPath),
+                RequestPath = "/oss/o"
+            });
+        }
+    }
+}
